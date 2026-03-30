@@ -5,7 +5,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Car Locator</title>
 
-  <!-- Leaflet CSS -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#000000">
+
+  <!-- Leaflet -->
   <link rel="stylesheet"
     href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 
@@ -18,13 +21,20 @@
 
   <div id="map"></div>
 
+  <div class="info">
+    <p id="distance">Distance: --</p>
+  </div>
+
+  <div id="arrow">↑</div>
+
   <div class="controls">
-    <button id="saveBtn">Save Car Location</button>
+    <button id="saveBtn">Save Car</button>
     <button id="locateBtn">Directions</button>
+    <button id="lostBtn">Lost Mode</button>
   </div>
 </div>
 
-<!-- Leaflet JS -->
+<!-- Leaflet -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="app.js"></script>
 
