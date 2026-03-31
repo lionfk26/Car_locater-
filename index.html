@@ -28,13 +28,17 @@
   <div id="arrow">↑</div>
 
   <div class="controls">
-    <button id="saveBtn">Save Car</button>
-    <button id="locateBtn">Directions</button>
+    <input id="carName" placeholder="Car name (e.g. BMW)" />
+    <button id="saveBtn">Save</button>
+  </div>
+
+  <div class="controls">
+    <select id="carList"></select>
+    <button id="navBtn">Navigate</button>
     <button id="lostBtn">Lost Mode</button>
   </div>
 </div>
 
-<!-- Leaflet -->
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="app.js"></script>
 
