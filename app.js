@@ -1,4 +1,4 @@
-let map, userMarker, carMarker;
+let map, userMarker, carMarkers = [], routeLine;
 
 // INIT MAP
 navigator.geolocation.getCurrentPosition(pos => {
@@ -11,45 +11,62 @@ navigator.geolocation.getCurrentPosition(pos => {
     attribution: '&copy; OpenStreetMap'
   }).addTo(map);
 
-  userMarker = L.marker([lat, lng]).addTo(map)
-    .bindPopup("You");
+  userMarker = L.marker([lat, lng]).addTo(map).bindPopup("You");
 
-  loadCar();
+  loadCars();
 });
+
+// STORAGE
+function getCars() {
+  return JSON.parse(localStorage.getItem("cars") || "[]");
+}
+
+function saveCars(cars) {
+  localStorage.setItem("cars", JSON.stringify(cars));
+}
 
 // SAVE CAR
 document.getElementById("saveBtn").onclick = () => {
+  const name = document.getElementById("carName").value || "My Car";
+
   navigator.geolocation.getCurrentPosition(pos => {
-    const car = {
+    const cars = getCars();
+
+    cars.push({
+      name,
       lat: pos.coords.latitude,
       lng: pos.coords.longitude
-    };
+    });
 
-    localStorage.setItem("carLocation", JSON.stringify(car));
-
-    if (carMarker) map.removeLayer(carMarker);
-
-    carMarker = L.marker([car.lat, car.lng])
-      .addTo(map)
-      .bindPopup("Car");
-
-    alert("Saved!");
+    saveCars(cars);
+    loadCars();
   });
 };
 
-// LOAD CAR
-function loadCar() {
-  const saved = localStorage.getItem("carLocation");
-  if (!saved) return;
+// LOAD CARS
+function loadCars() {
+  carMarkers.forEach(m => map.removeLayer(m));
+  carMarkers = [];
 
-  const car = JSON.parse(saved);
+  const cars = getCars();
+  const select = document.getElementById("carList");
+  select.innerHTML = "";
 
-  carMarker = L.marker([car.lat, car.lng])
-    .addTo(map)
-    .bindPopup("Car");
+  cars.forEach((car, i) => {
+    const marker = L.marker([car.lat, car.lng])
+      .addTo(map)
+      .bindPopup(car.name);
+
+    carMarkers.push(marker);
+
+    const option = document.createElement("option");
+    option.value = i;
+    option.textContent = car.name;
+    select.appendChild(option);
+  });
 }
 
-// DISTANCE FUNCTION
+// DISTANCE
 function getDistance(lat1, lon1, lat2, lon2) {
   const R = 6371000;
   const toRad = x => x * Math.PI / 180;
@@ -66,7 +83,7 @@ function getDistance(lat1, lon1, lat2, lon2) {
   return R * (2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a)));
 }
 
-// BEARING FUNCTION
+// BEARING
 function getBearing(lat1, lon1, lat2, lon2) {
   const toRad = x => x * Math.PI / 180;
   const toDeg = x => x * 180 / Math.PI;
@@ -85,10 +102,11 @@ function getBearing(lat1, lon1, lat2, lon2) {
 
 // LIVE UPDATE
 setInterval(() => {
-  const saved = localStorage.getItem("carLocation");
-  if (!saved) return;
+  const cars = getCars();
+  const index = document.getElementById("carList").value;
+  if (!cars[index]) return;
 
-  const car = JSON.parse(saved);
+  const car = cars[index];
 
   navigator.geolocation.getCurrentPosition(pos => {
     const lat = pos.coords.latitude;
@@ -105,16 +123,31 @@ setInterval(() => {
   });
 }, 2000);
 
-// DIRECTIONS
-document.getElementById("locateBtn").onclick = () => {
-  const saved = localStorage.getItem("carLocation");
-  if (!saved) return alert("No saved car");
+// IN-APP NAVIGATION
+document.getElementById("navBtn").onclick = async () => {
+  const cars = getCars();
+  const index = document.getElementById("carList").value;
+  if (!cars[index]) return;
 
-  const car = JSON.parse(saved);
+  const car = cars[index];
 
-  navigator.geolocation.getCurrentPosition(pos => {
-    const url = `https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${pos.coords.latitude},${pos.coords.longitude};${car.lat},${car.lng}`;
-    window.open(url, "_blank");
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const start = `${pos.coords.longitude},${pos.coords.latitude}`;
+    const end = `${car.lng},${car.lat}`;
+
+    const res = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${start};${end}?overview=full&geometries=geojson`
+    );
+
+    const data = await res.json();
+
+    const coords = data.routes[0].geometry.coordinates.map(c => [c[1], c[0]]);
+
+    if (routeLine) map.removeLayer(routeLine);
+
+    routeLine = L.polyline(coords).addTo(map);
+
+    map.fitBounds(routeLine.getBounds());
   });
 };
 
